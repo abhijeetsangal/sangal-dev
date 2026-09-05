@@ -2,7 +2,7 @@
 
 A real-time, room-based chat application built with **Node.js**, **Express**, **Socket.io**, and **MongoDB**. Users can join named chat rooms, send messages instantly, see who else is online, and pick up past conversation history when they join.
 
-**Live Demo:** _[add your deployed link here once live]_
+**Live Demo:** [https://sangal-dev1.onrender.com](https://sangal-dev1.onrender.com)
 
 ---
 
