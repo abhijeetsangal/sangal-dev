@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Realtime Chat</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #ece5dd;
+        }
+
+        .app {
+            max-width: 850px;
+            margin: 30px auto;
+            background: #fff;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+            display: flex;
+            flex-direction: column;
+            height: 85vh;
+        }
+
+        .app-header {
+            background: #075e54;
+            color: white;
+            padding: 15px 20px;
+            font-size: 18px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #roomLabel {
+            font-size: 14px;
+            font-weight: normal;
+            opacity: 0.85;
+        }
+
+        .join-bar {
+            display: flex;
+            gap: 8px;
+            padding: 12px;
+            background: #f7f7f7;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .join-bar input {
+            flex: 1;
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+
+        .join-bar input:disabled {
+            background: #eee;
+            color: #666;
+        }
+
+        .join-bar button {
+            padding: 8px 14px;
+            border: none;
+            border-radius: 6px;
+            background: #075e54;
+            color: white;
+            cursor: pointer;
+        }
+
+        .join-bar button:disabled {
+            background: #aaa;
+            cursor: not-allowed;
+        }
+
+        .main-area {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .rooms-sidebar {
+            width: 150px;
+            background: #f7f7f7;
+            border-right: 1px solid #ddd;
+            padding: 10px;
+            overflow-y: auto;
+        }
+
+        .rooms-sidebar h4 {
+            margin: 0 0 8px 0;
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+        }
+
+        .room-chip {
+            display: block;
+            padding: 6px 8px;
+            margin-bottom: 4px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            color: #075e54;
+        }
+
+        .room-chip:hover {
+            background: #e6e6e6;
+        }
+
+        .room-chip.active {
+            background: #dcf8c6;
+            font-weight: bold;
+        }
+
+        .chat-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #chat {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            background: #ece5dd;
+        }
+
+        .message {
+            margin: 8px 0;
+            padding: 8px 14px;
+            border-radius: 12px;
+            max-width: 70%;
+            font-size: 14px;
+        }
+
+        .my-message {
+            margin-left: auto;
+            text-align: right;
+            background: #dcf8c6;
+        }
+
+        .other-message {
+            margin-right: auto;
+            background: #fff;
+        }
+
+        .username {
+            font-size: 11px;
+            font-weight: bold;
+            margin-bottom: 3px;
+            color: #075e54;
+        }
+
+        #typingIndicator {
+            font-size: 12px;
+            color: #888;
+            height: 18px;
+            padding: 2px 15px;
+            background: #ece5dd;
+        }
+
+        .input-bar {
+            display: flex;
+            gap: 8px;
+            padding: 10px;
+            background: #f7f7f7;
+            border-top: 1px solid #ddd;
+        }
+
+        .input-bar input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+        }
+
+        .input-bar button {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 20px;
+            background: #075e54;
+            color: white;
+            cursor: pointer;
+        }
+
+        .input-bar button:disabled {
+            background: #aaa;
+            cursor: not-allowed;
+        }
+
+        .users-sidebar {
+            width: 140px;
+            background: #f7f7f7;
+            border-left: 1px solid #ddd;
+            padding: 10px;
+            overflow-y: auto;
+        }
+
+        .users-sidebar ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 13px;
+        }
+
+        .users-sidebar li {
+            padding: 4px 0;
+        }
+
+        .notification {
+            text-align: center;
+            margin: 8px 0;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="app">
+        <div class="app-header">
+            <span>💬 Realtime Chat</span>
+            <span id="roomLabel"></span>
+        </div>
+
+        <div class="join-bar">
+            <input id="usernameInput" type="text" placeholder="Your name">
+            <input id="roomInput" type="text" placeholder="Room name" value="general">
+            <button id="joinButton">Join</button>
+            <button id="leaveButton" disabled>Leave</button>
+        </div>
+
+        <div class="main-area">
+            <div class="rooms-sidebar">
+                <h4>Your Rooms</h4>
+                <div id="recentRooms"></div>
+            </div>
+
+            <div class="chat-column">
+                <div id="chat"></div>
+                <div id="typingIndicator"></div>
+                <div class="input-bar">
+                    <input id="messageInput" type="text" placeholder="Type a message" disabled>
+                    <button id="sendButton">Send</button>
+                </div>
+            </div>
+
+            <div class="users-sidebar">
+                <ul id="userList"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let mySocketId = "";
+        let currentRoom = "";
+
+        const usernameInput = document.getElementById("usernameInput");
+        const roomInput = document.getElementById("roomInput");
+        const roomLabel = document.getElementById("roomLabel");
+        const messageInput = document.getElementById("messageInput");
+        const sendButton = document.getElementById("sendButton");
+        const chat = document.getElementById("chat");
+        const joinButton = document.getElementById("joinButton");
+        const leaveButton = document.getElementById("leaveButton");
+        const userList = document.getElementById("userList");
+        const recentRoomsContainer = document.getElementById("recentRooms");
+
+        // Restore saved username on page load, and lock it if already set
+        const savedUsername = localStorage.getItem("chatUsername");
+        if (savedUsername) {
+            usernameInput.value = savedUsername;
+            usernameInput.disabled = true;
+        }
+
+        socket.on("connect", () => {
+            mySocketId = socket.id;
+        });
+
+        async function loadHistory(room) {
+            try {
+                const response = await fetch(`/messages?room=${encodeURIComponent(room)}`);
+                const messages = await response.json();
+                messages.forEach(renderMessage);
+                chat.scrollTop = chat.scrollHeight;
+            } catch (error) {
+                console.error('Error loading message history:', error);
+            }
+        }
+
+        function getRecentRooms() {
+            return JSON.parse(localStorage.getItem("recentRooms") || "[]");
+        }
+
+        function saveRecentRoom(room) {
+            let rooms = getRecentRooms();
+            rooms = rooms.filter(r => r !== room);
+            rooms.unshift(room);
+            rooms = rooms.slice(0, 8);
+            localStorage.setItem("recentRooms", JSON.stringify(rooms));
+            renderRecentRooms();
+        }
+
+        function renderRecentRooms() {
+            const rooms = getRecentRooms();
+            recentRoomsContainer.innerHTML = "";
+
+            rooms.forEach(room => {
+                const div = document.createElement("div");
+                div.className = "room-chip" + (room === currentRoom ? " active" : "");
+                div.textContent = room;
+                div.addEventListener("click", () => {
+                    switchRoom(room);
+                });
+                recentRoomsContainer.appendChild(div);
+            });
+        }
+
+        function switchRoom(room) {
+            const username = usernameInput.value.trim();
+            if (username === "") return;
+
+            if (currentRoom) {
+                socket.emit("leave_chat", { username, room: currentRoom });
+            }
+
+            roomInput.value = room;
+            currentRoom = room;
+            socket.emit("join_chat", { username, room });
+
+            messageInput.disabled = false;
+            leaveButton.disabled = false;
+            joinButton.disabled = true;
+
+            roomLabel.textContent = `Room: ${room}`;
+            chat.innerHTML = "";
+            loadHistory(room);
+            saveRecentRoom(room);
+        }
+
+        function joinChat() {
+            const username = usernameInput.value.trim();
+            const room = roomInput.value.trim() || "general";
+
+            if (username !== "") {
+                localStorage.setItem("chatUsername", username);
+                usernameInput.disabled = true;
+
+                switchRoom(room);
+            }
+        }
+
+        function leaveChat() {
+            socket.emit("leave_chat", { username: usernameInput.value, room: currentRoom });
+
+            joinButton.disabled = false;
+            messageInput.disabled = true;
+            leaveButton.disabled = true;
+
+            chat.innerHTML = "";
+            userList.innerHTML = "";
+            roomLabel.textContent = "";
+            currentRoom = "";
+            renderRecentRooms();
+        }
+
+        joinButton.addEventListener("click", joinChat);
+        leaveButton.addEventListener("click", leaveChat);
+
+        usernameInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                joinChat();
+            }
+        });
+
+        roomInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                joinChat();
+            }
+        });
+
+        sendButton.addEventListener("click", () => {
+            const username = usernameInput.value;
+            const message = messageInput.value;
+
+            if (username.trim() !== "" && message.trim() !== "") {
+                socket.emit("send_message", {
+                    username: username,
+                    message: message,
+                    room: currentRoom,
+                    time: new Date().toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit"
+                    })
+                });
+
+                messageInput.value = "";
+            }
+        });
+
+        messageInput.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+                sendButton.click();
+            }
+        });
+
+        function renderMessage(data) {
+            const messageDiv = document.createElement("div");
+            const usernameDiv = document.createElement("div");
+
+            messageDiv.classList.add("message");
+            usernameDiv.classList.add("username");
+            usernameDiv.textContent = data.username;
+            messageDiv.appendChild(usernameDiv);
+
+            const text = document.createElement("div");
+            text.textContent = data.message;
+
+            const time = document.createElement("div");
+            time.textContent = data.time;
+            time.style.fontSize = "10px";
+            time.style.marginTop = "4px";
+            time.style.color = "#999";
+
+            messageDiv.appendChild(text);
+            messageDiv.appendChild(time);
+
+            if (data.senderId === mySocketId) {
+                messageDiv.classList.add("my-message");
+            } else {
+                messageDiv.classList.add("other-message");
+            }
+
+            chat.appendChild(messageDiv);
+        }
+
+        socket.on("receive_message", (data) => {
+            renderMessage(data);
+            chat.scrollTop = chat.scrollHeight;
+        });
+
+        socket.on("user_joined", (username) => {
+            const notification = document.createElement("div");
+            notification.classList.add("notification");
+            notification.textContent = `🟢 ${username} joined the chat`;
+            chat.appendChild(notification);
+            chat.scrollTop = chat.scrollHeight;
+        });
+
+        socket.on("user_left", (username) => {
+            const notification = document.createElement("div");
+            notification.classList.add("notification");
+            notification.textContent = `🔴 ${username} left the chat`;
+            chat.appendChild(notification);
+            chat.scrollTop = chat.scrollHeight;
+        });
+
+        socket.on("user_list", (users) => {
+            userList.innerHTML = "";
+            users.forEach((user) => {
+                const li = document.createElement("li");
+                li.textContent = `🟢 ${user}`;
+                userList.appendChild(li);
+            });
+        });
+
+        renderRecentRooms();
+    </script>
+
+</body>
+</html>
