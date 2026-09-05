@@ -18,7 +18,7 @@ const io = new Server(server, {
     }
 });
 
-const roomUsers = {}; // { roomName: Set of usernames }
+const roomUsers = {};
 
 app.use(express.static('public'));
 
